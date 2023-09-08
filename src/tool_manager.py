@@ -5,7 +5,7 @@ from tools.constants import ADDRESS_COMPONENTS_LITERAL_STR, ADDRESS_STR, GEOMETR
 
 logging.basicConfig(format="%(asctime)s - %(message)s", level=logging.INFO)
 
-def geocoding(st: int = 1300) -> dict:
+def geocoding(st: int = 1300, address: str = ADDRESS_STR) -> dict:
     """
     Geocode an address using the Google Maps API.
 
@@ -27,18 +27,18 @@ def geocoding(st: int = 1300) -> dict:
         gmaps = googlemaps.Client(key=GOOGLE_API_STR)
 
         #geocoding address
-        geocode_result = gmaps.geocode(f"{st} {ADDRESS_STR}")[0]
+        geocode_result = gmaps.geocode(f"{st} {address}")
         
         if not geocode_result:
-            raise googlemaps.exceptions.HTTPError()
+            raise googlemaps.exceptions.HTTPError(400)
         
-        return geocode_result
+        return geocode_result[0]
 
     except googlemaps.exceptions.HTTPError as er:
         logging.info(f'sending error.... {er}')
         
 
-def get_location(st: int = 1300) -> list:
+def get_location(st: int = 1300, address: str = ADDRESS_STR) -> list:
     """
     Retrieve the latitude and longitude coordinates for a given street address.
 
@@ -56,7 +56,7 @@ def get_location(st: int = 1300) -> list:
         This function internally uses the `geocoding` function to obtain the coordinates.
     """
 
-    geocode = geocoding(st)
+    geocode = geocoding(st=st, address=address)
     location = geocode[GEOMETRY_LITERAL_STR][LOCATION_LITERAL_STR]
 
     longitude = location[LONGITUDE_LITERAL_STR]
@@ -68,7 +68,7 @@ def get_location(st: int = 1300) -> list:
 
     return geo_lon_lat
 
-def get_neighborhood(st: int = 1300) -> str:
+def get_neighborhood(st: int = 1300, address: str = ADDRESS_STR) -> str:
     """
     Retrieve the neighborhood name for a given street address.
 
@@ -83,7 +83,7 @@ def get_neighborhood(st: int = 1300) -> str:
         print(f"The neighborhood is {neighborhood}")
     """
 
-    geocode = geocoding(st)
+    geocode = geocoding(st=st, address=address)
 
     address_components = geocode[ADDRESS_COMPONENTS_LITERAL_STR]
     
@@ -95,7 +95,7 @@ def get_neighborhood(st: int = 1300) -> str:
 
     return neighborhood_name
 
-def recursive_get_neighborhood(prev_neighborhood_name: str = None, st: int = 1300) -> str:
+def recursive_get_neighborhood(prev_neighborhood_name: str = None, st: int = 1300, address: str = ADDRESS_STR) -> str:
     """
     Recursively retrieve and monitor changes in the neighborhood name for a given street address.
 
@@ -115,7 +115,7 @@ def recursive_get_neighborhood(prev_neighborhood_name: str = None, st: int = 130
         It recursively increments the street number and monitors changes in the neighborhood name.
     """
 
-    new_neighborhood_name = get_neighborhood(st)
+    new_neighborhood_name = get_neighborhood(st=st, address=address)
     if not prev_neighborhood_name:
         logging.info(f"The previous neighborhood is {new_neighborhood_name}")    
         return recursive_get_neighborhood(prev_neighborhood_name=new_neighborhood_name)
@@ -123,4 +123,4 @@ def recursive_get_neighborhood(prev_neighborhood_name: str = None, st: int = 130
         logging.info(f"The new neighborhood is {new_neighborhood_name}")
         logging.info(f"The Street is: {st}")
         return new_neighborhood_name
-    return recursive_get_neighborhood(st=st+100, prev_neighborhood_name=new_neighborhood_name)
+    return recursive_get_neighborhood(st=st+100, prev_neighborhood_name=new_neighborhood_name, address=address)
